@@ -1,7 +1,8 @@
 package br.com.alura.currencyconverter.model;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,7 +14,7 @@ public class RequestCurrency {
     private String your_key = "84008f3c64e3e792cc81b5da";
 
     public void getCurrency(String actualCurrenty, String toConvertCurrency, double value) throws IOException, InterruptedException {
-        String url = "https://v6.exchangerate-api.com/v6/" + your_key + "/latest/" + toConvertCurrency.toUpperCase();
+        String url = "https://v6.exchangerate-api.com/v6/" + your_key + "/latest/" + actualCurrenty;
 
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -23,10 +24,20 @@ public class RequestCurrency {
             HttpResponse<String> response = client
                     .send(request, HttpResponse.BodyHandlers.ofString());
 
-            var json = response.body();
-            System.out.println(json);
+            JsonObject jsonObj = new Gson().fromJson(response.body(), JsonObject.class);
 
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            JsonObject conversionRatesObj = jsonObj.getAsJsonObject("conversion_rates");
+
+            if (conversionRatesObj != null && conversionRatesObj.has(toConvertCurrency)) {
+                double valueRate = conversionRatesObj.get(toConvertCurrency).getAsDouble();
+                System.out.println("\nVocê deseja converter $" + value + " " + actualCurrenty);
+                System.out.println("A taxa de conversão atual na moeda escolhida é de 1 para " + valueRate);
+                System.out.println("O valor em " + toConvertCurrency + " é de $" + value * valueRate);
+                System.out.println("Obrigado por usar o Currency Converter");
+
+            } else if (conversionRatesObj == null || value <= 0) {
+                System.out.println("Entrada inválida!");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
